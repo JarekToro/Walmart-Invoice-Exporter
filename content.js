@@ -177,6 +177,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     // Function to find the order number based on a list of possible selectors
     function findOrderNumber() {
+      // First try to find order number from data-automation-id attribute
+      const linkWithAutomationId = document.querySelector('[data-automation-id^="view-order-details-link-"]');
+      if (linkWithAutomationId) {
+        const automationId = linkWithAutomationId.getAttribute('data-automation-id');
+        const match = automationId.match(/view-order-details-link-(\d+)/);
+        if (match && match[1]) {
+          return match[1];
+        }
+      }
+
       const selectors = [
         ".f-subheadline-m.dark-gray-m.print-bill-bar-id",
         "[data-testid='orderInfoCard'] .dark-gray",
@@ -282,21 +292,22 @@ async function handleClickNextButton() {
 }
 
 function extractOrderNumbers() {
-  const orderElements = document.querySelectorAll(
-    "#maincontent > main > section > div.flex.relative-m > div.w-100.di-m.flex-auto > div > section > div > div > div > div.w_udHt.w_CEpt.bg-near-white-primary.pv3.mv0 > span.w_kV33.w_Sl3f.w_mvVb.w_E5rV > h2 > span"
-  );
-  console.log(`Found ${orderElements.length} order elements`);
   const orderNumbers = [];
   const additionalFields = {}; // Map order number to additional field
 
-  orderElements.forEach((element) => {
-    const match = element.textContent.trim().match(/#\s*([\d-]+)/);
+  // First try to extract order numbers from data-automation-id attributes
+  const linksWithAutomationId = document.querySelectorAll('[data-automation-id^="view-order-details-link-"]');
+  console.log(`Found ${linksWithAutomationId.length} order elements with data-automation-id`);
+
+  linksWithAutomationId.forEach((link) => {
+    const automationId = link.getAttribute('data-automation-id');
+    const match = automationId.match(/view-order-details-link-(\d+)/);
     if (match && match[1]) {
       const orderNumber = match[1];
       orderNumbers.push(orderNumber);
 
       // Try to find the additional field for this order
-      let container = element.closest("div.w_udHt.w_CEpt");
+      let container = link.closest("div.w_udHt.w_CEpt");
       if (container) {
         const parentContainer = container.parentElement.parentElement;
         const additionalFieldElement = parentContainer.querySelector("h3.w_kV33.w_Sl3f.w_mvVb.f3");
@@ -306,6 +317,32 @@ function extractOrderNumbers() {
       }
     }
   });
+
+  // If no order numbers found via data-automation-id, fall back to the old selector method
+  if (orderNumbers.length === 0) {
+    const orderElements = document.querySelectorAll(
+      "#maincontent > main > section > div.flex.relative-m > div.w-100.di-m.flex-auto > div > section > div > div > div > div.w_udHt.w_CEpt.bg-near-white-primary.pv3.mv0 > span.w_kV33.w_Sl3f.w_mvVb.w_E5rV > h2 > span"
+    );
+    console.log(`Found ${orderElements.length} order elements with fallback selector`);
+
+    orderElements.forEach((element) => {
+      const match = element.textContent.trim().match(/#\s*([\d-]+)/);
+      if (match && match[1]) {
+        const orderNumber = match[1];
+        orderNumbers.push(orderNumber);
+
+        // Try to find the additional field for this order
+        let container = element.closest("div.w_udHt.w_CEpt");
+        if (container) {
+          const parentContainer = container.parentElement.parentElement;
+          const additionalFieldElement = parentContainer.querySelector("h3.w_kV33.w_Sl3f.w_mvVb.f3");
+          if (additionalFieldElement) {
+            additionalFields[orderNumber] = additionalFieldElement.textContent.trim();
+          }
+        }
+      }
+    });
+  }
 
   return { orderNumbers, additionalFields };
 }
