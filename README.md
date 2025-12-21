@@ -113,8 +113,11 @@ The scraper tool provides a fully automated command-line interface:
 # Navigate to scraper directory
 cd scraper
 
-# Scrape all orders
+# Scrape all orders (will prompt for login if needed)
 npm start scrape
+
+# Run in headless mode (login verification is always visible, scraping is headless)
+npm start scrape -- --headless
 
 # List all order numbers
 npm start list
@@ -125,6 +128,11 @@ npm start scrape-orders -- 1234567890 9876543210
 # Scrape with options
 npm start scrape -- --headless --max-pages 10
 ```
+
+**Authentication:** The scraper uses a smart two-step process:
+1. Opens a visible browser to verify/complete login (even in headless mode)
+2. Saves your session for future use
+3. Runs the actual scraping in your preferred mode (headless or visible)
 
 For complete documentation, see [Scraper README](./scraper/README.md).
 

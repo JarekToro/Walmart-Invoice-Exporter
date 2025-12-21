@@ -169,6 +169,83 @@ export class WalmartOrderScraper {
   }
 
   /**
+   * Authenticate and get valid session
+   * Opens a visible browser for login if needed, then returns session data
+   * @returns {Promise<Object|null>} Session data with cookies or null
+   */
+  async authenticateIfNeeded() {
+    const fs = await import('fs');
+
+    // Try to load existing session
+    let sessionData = null;
+    if (this.options.sessionFile) {
+      try {
+        sessionData = JSON.parse(fs.readFileSync(this.options.sessionFile, 'utf-8'));
+        console.log('📋 Found existing session file\n');
+      } catch (error) {
+        console.log('📋 No existing session found\n');
+      }
+    }
+
+    // Open a non-headless browser to verify/create session
+    console.log('🔍 Verifying authentication...\n');
+    const loginBrowser = await chromium.launch({
+      headless: false, // Always visible for login
+      slowMo: config.browserSettings.slowMo,
+    });
+
+    const loginContext = await loginBrowser.newContext({
+      viewport: config.browserSettings.viewport,
+    });
+
+    // Load session if we have one
+    if (sessionData && sessionData.cookies) {
+      await loginContext.addCookies(sessionData.cookies);
+    }
+
+    const loginPage = await loginContext.newPage();
+
+    try {
+      // Navigate to orders page
+      console.log('🌐 Navigating to Walmart orders page...\n');
+      await loginPage.goto(config.ordersUrl, {
+        waitUntil: 'networkidle',
+        timeout: config.navigationTimeout,
+      });
+
+      // Check if we need to log in
+      const currentUrl = loginPage.url();
+      if (currentUrl.includes('login') || currentUrl.includes('signin')) {
+        console.log('🔐 Login required. Please log in manually in the browser window...\n');
+        console.log('   (You have 5 minutes to complete the login)\n');
+
+        // Wait for user to log in
+        await loginPage.waitForURL('**/orders**', { timeout: 300000 }); // 5 min timeout
+
+        console.log('✓ Login successful!\n');
+      } else {
+        console.log('✓ Already logged in!\n');
+      }
+
+      // Extract session data
+      const cookies = await loginContext.cookies();
+      sessionData = { cookies, timestamp: Date.now() };
+
+      // Save session for future use
+      if (this.options.sessionFile) {
+        fs.writeFileSync(this.options.sessionFile, JSON.stringify(sessionData, null, 2));
+        console.log('✓ Session saved to file\n');
+      }
+
+      return sessionData;
+    } finally {
+      // Always close the login browser
+      await loginBrowser.close();
+      console.log('✓ Login browser closed\n');
+    }
+  }
+
+  /**
    * Run the complete scraping workflow
    * @param {Object} options - Scraping options
    * @returns {Promise<Array>} Array of scraped order details
@@ -181,7 +258,16 @@ export class WalmartOrderScraper {
 
     console.log('🚀 Starting Walmart Order Scraper\n');
 
-    // Launch browser
+    // Step 1: Authenticate (always in visible browser)
+    const sessionData = await this.authenticateIfNeeded();
+
+    if (!sessionData) {
+      throw new Error('Failed to authenticate. Please try again.');
+    }
+
+    // Step 2: Launch browser for scraping (headless based on user preference)
+    console.log(`🚀 Launching ${this.options.headless ? 'headless' : 'visible'} browser for scraping...\n`);
+
     const browser = await chromium.launch({
       headless: this.options.headless,
       slowMo: config.browserSettings.slowMo,
@@ -191,48 +277,27 @@ export class WalmartOrderScraper {
       viewport: config.browserSettings.viewport,
     });
 
-    // Load session if provided
-    if (this.options.sessionFile) {
-      try {
-        const fs = await import('fs');
-        const sessionData = JSON.parse(fs.readFileSync(this.options.sessionFile, 'utf-8'));
-        await context.addCookies(sessionData.cookies);
-        console.log('✓ Loaded session from file\n');
-      } catch (error) {
-        console.log('⚠️  Could not load session file. You may need to log in manually.\n');
-      }
-    }
+    // Load the authenticated session
+    await context.addCookies(sessionData.cookies);
+    console.log('✓ Session loaded into scraping browser\n');
 
     const page = await context.newPage();
 
     try {
-      // Navigate to orders page
+      // Navigate to orders page (should be already authenticated)
       console.log('🌐 Navigating to Walmart orders page...\n');
       await page.goto(config.ordersUrl, {
         waitUntil: 'networkidle',
         timeout: config.navigationTimeout,
       });
 
-      // Check if we need to log in
+      // Verify we're logged in
       const currentUrl = page.url();
       if (currentUrl.includes('login') || currentUrl.includes('signin')) {
-        console.log('🔐 Login required. Please log in manually in the browser window...\n');
-        console.log('   Waiting for navigation to orders page...\n');
-
-        // Wait for user to log in
-        await page.waitForURL('**/orders**', { timeout: 300000 }); // 5 min timeout
-
-        console.log('✓ Login successful!\n');
-
-        // Save session for future use
-        if (this.options.sessionFile) {
-          const cookies = await context.cookies();
-          const sessionData = { cookies };
-          const fs = await import('fs');
-          fs.writeFileSync(this.options.sessionFile, JSON.stringify(sessionData, null, 2));
-          console.log('✓ Session saved to file\n');
-        }
+        throw new Error('Session expired or invalid. Please run again to re-authenticate.');
       }
+
+      console.log('✓ Successfully authenticated in scraping browser\n');
 
       // If specific order numbers provided, skip collection
       if (orderNumbers && orderNumbers.length > 0) {

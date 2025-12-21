@@ -111,14 +111,28 @@ npm start clear-session
 
 ## How It Works
 
-### Authentication
+### Authentication (Improved Two-Step Process)
 
-The first time you run the scraper, it will open a browser window and navigate to Walmart's orders page. If you're not logged in:
+The scraper uses a smart two-step authentication process:
 
-1. The scraper will detect the login page
-2. You'll have 5 minutes to manually log in
-3. Once logged in, the scraper will save your session to `session.json`
-4. Future runs will reuse this session automatically
+**Step 1: Login Verification (Always Visible)**
+1. Opens a **visible browser window** to verify your login status
+2. If you have a saved session, it will check if it's still valid
+3. If login is needed, you'll have 5 minutes to manually log in
+4. Once logged in, saves your session to `session.json`
+5. **Closes the login browser**
+
+**Step 2: Scraping (Headless or Visible)**
+1. Opens a new browser for scraping (headless if you specified `--headless`)
+2. Loads your authenticated session from Step 1
+3. Proceeds with scraping at full speed
+
+**Benefits:**
+- ✅ Login is always visible, even in headless mode
+- ✅ After initial login, scraping runs in fast headless mode
+- ✅ Session is validated before scraping begins
+- ✅ No confusion about why a browser window appears
+- ✅ Existing valid sessions are quickly verified and reused
 
 ### Order Collection
 
@@ -179,8 +193,12 @@ You can modify the scraper settings in `src/config.js`:
 If you have trouble logging in:
 
 1. Clear the session: `npm start clear-session`
-2. Run in non-headless mode: `npm start scrape` (default)
-3. Manually log in when the browser opens
+2. Run the scraper again - the login browser will always open visibly
+3. Watch for the login browser window (it opens automatically)
+4. Complete the login within 5 minutes
+5. The scraper will automatically continue after successful login
+
+**Note:** Even if you use `--headless` flag, the login verification step always opens a visible browser. Only the scraping step runs in headless mode.
 
 ### Scraping Failures
 
@@ -215,6 +233,7 @@ If your session expires:
 | Session | Browser cookies | session.json file |
 | Speed | Slower | Faster (headless mode) |
 | Flexibility | Limited | Highly configurable |
+| Login Flow | Manual in browser | Two-step: verify then scrape |
 
 ## Migration from Browser Extension
 
