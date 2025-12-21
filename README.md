@@ -1,6 +1,9 @@
 # Walmart Invoice Exporter
 
-A Chrome extension that allows users to download their Walmart order history in XLSX format. Now with enhanced performance and optimized batch downloading capabilities!
+A Chrome extension and automation tool that allows users to download their Walmart order history in XLSX format. Now available in two versions:
+
+1. **Browser Extension** - Chrome extension for manual order downloads
+2. **Scraper Tool** - Automated CLI tool using Crawlee + Playwright (New! 🚀)
 
 <img src="./screenshot.webp" alt="Screenshot of extension" height="200">
 
@@ -50,11 +53,13 @@ A Chrome extension that allows users to download their Walmart order history in 
 
 ## Installation
 
-### From Chrome Web Store
+### Option 1: Browser Extension
+
+#### From Chrome Web Store
 
 Install the Walmart Invoice Exporter directly from the [Chrome Web Store](https://chromewebstore.google.com/detail/walmart-invoice-exporter/bndkihecbbkoligeekekdgommmdllfpe).
 
-### Manual Installation
+#### Manual Installation
 
 1. Download or clone this repository
 2. Open Chrome and go to `chrome://extensions/`
@@ -62,19 +67,33 @@ Install the Walmart Invoice Exporter directly from the [Chrome Web Store](https:
 4. Click "Load unpacked" and select the extension directory
 5. Pin the extension to your toolbar for easy access
 
+### Option 2: Scraper Tool (Automated)
+
+For fully automated order scraping without browser interaction:
+
+```bash
+cd scraper
+npm install
+npm start scrape
+```
+
+See the [Scraper Documentation](./scraper/README.md) for detailed usage instructions.
+
 ## What's New
 
 ### [Changelog](./CHANGELOG.md)
 
 ## Usage
 
-### Single Order Download
+### Browser Extension
+
+#### Single Order Download
 
 1. Navigate to a specific Walmart order page
 2. Click the extension icon
 3. Click "Download Invoice"
 
-### Batch Download
+#### Batch Download
 
 1. Go to your Walmart order history page (https://www.walmart.com/orders)
 2. Click the extension icon
@@ -85,6 +104,29 @@ Install the Walmart Invoice Exporter directly from the [Chrome Web Store](https:
 7. Select the orders you want to download
 8. Click "Download Selected Orders"
 9. Wait for the downloads to complete
+
+### Scraper Tool (CLI)
+
+The scraper tool provides a fully automated command-line interface:
+
+```bash
+# Navigate to scraper directory
+cd scraper
+
+# Scrape all orders
+npm start scrape
+
+# List all order numbers
+npm start list
+
+# Scrape specific orders
+npm start scrape-orders -- 1234567890 9876543210
+
+# Scrape with options
+npm start scrape -- --headless --max-pages 10
+```
+
+For complete documentation, see [Scraper README](./scraper/README.md).
 
 ## Troubleshooting
 
@@ -176,6 +218,28 @@ This extension:
 - Processes all information locally
 - Doesn't send data to external servers
 - Only blocks images for performance optimization
+
+## Comparison: Browser Extension vs Scraper Tool
+
+| Feature | Browser Extension | Scraper Tool |
+|---------|------------------|--------------|
+| **Ease of Use** | ⭐⭐⭐⭐⭐ Click-based | ⭐⭐⭐⭐ Command-line |
+| **Automation** | ⭐⭐⭐ Semi-automated | ⭐⭐⭐⭐⭐ Fully automated |
+| **Speed** | ⭐⭐⭐ Moderate | ⭐⭐⭐⭐⭐ Fast (headless) |
+| **Flexibility** | ⭐⭐⭐ Limited options | ⭐⭐⭐⭐⭐ Highly configurable |
+| **Installation** | ⭐⭐⭐⭐⭐ One-click | ⭐⭐⭐ Requires Node.js |
+| **Use Case** | Manual/occasional use | Bulk/automated use |
+
+**Choose Browser Extension if:**
+- You want a simple point-and-click interface
+- You download orders occasionally
+- You prefer working in the browser
+
+**Choose Scraper Tool if:**
+- You need to download many orders regularly
+- You want full automation
+- You're comfortable with command-line tools
+- You need headless/background operation
 
 ## Acknowledgments
 
