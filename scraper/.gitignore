@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Output files
+downloads/
+*.xlsx
+
+# Session files
+session.json
+cookies.json
+
+# Crawlee storage
+storage/
+.crawlee/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
